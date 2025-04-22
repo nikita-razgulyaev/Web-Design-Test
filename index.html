@@ -1,0 +1,464 @@
+<script type="text/javascript">
+    var gk_isXlsx = false;
+    var gk_xlsxFileLookup = {};
+    var gk_fileData = {};
+    function filledCell(cell) {
+        return cell !== '' && cell != null;
+    }
+    function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                    row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                    headerRowIndex = 0;
+                }
+
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+    }
+</script>
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест по веб-дизайну</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        h1 {
+            color: #ffffff;
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 30px;
+            animation: slideDown 0.8s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .question-block {
+            background: #333333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .question-block:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-check {
+            margin-left: 15px;
+            padding: 12px;
+            border-radius: 6px;
+            transition: background-color 0.2s ease;
+        }
+
+        .form-check label {
+            cursor: pointer;
+        }
+
+        .form-check:hover {
+            background-color: #444444;
+        }
+
+        .form-check-input {
+            margin-right: 12px;
+            transform: scale(1.3);
+            accent-color: #6200ea;
+        }
+
+        .correct {
+            background-color: #2e7d32 !important;
+            color: #ffffff;
+            animation: glow 0.5s ease-in-out;
+        }
+
+        .incorrect {
+            background-color: #d32f2f !important;
+            color: #ffffff;
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes glow {
+            0% {
+                box-shadow: 0 0 0 rgba(46, 125, 50, 0.5);
+            }
+
+            50% {
+                box-shadow: 0 0 10px rgba(46, 125, 50, 0.8);
+            }
+
+            100% {
+                box-shadow: 0 0 0 rgba(46, 125, 50, 0.5);
+            }
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-4px);
+            }
+
+            75% {
+                transform: translateX(4px);
+            }
+        }
+
+        .btn-primary {
+            background-color: #6200ea;
+            border: none;
+            padding: 12px 40px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 700;
+            transition: background-color 0.3s, transform 0.3s;
+            display: block;
+            margin: 20px auto;
+        }
+
+        .btn-primary:hover {
+            background-color: #7c4dff;
+            transform: translateY(-2px);
+        }
+
+        .result {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            background: #424242;
+            text-align: center;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .progress-container {
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            background-color: #6200ea;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Тест по веб-дизайну</h1>
+        <div class="progress-container">
+            <div class="progress">
+                <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0"
+                    aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+        </div>
+        <form id="quizForm">
+            <div class="question-block">
+                <p><strong>1. Что такое UX-дизайн?</strong></p>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q1" value="a" id="q1a">
+                    <label class="form-check-label" for="q1a">Создание визуальных элементов</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q1" value="b" id="q1b">
+                    <label class="form-check-label" for="q1b">Оптимизация пользовательского опыта</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q1" value="c" id="q1c">
+                    <label class="form-check-label" for="q1c">Программирование интерфейсов</label>
+                </div>
+            </div>
+
+            <div class="question-block">
+                <p><strong>2. Какой принцип дизайна обеспечивает легкость восприятия?</strong></p>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q2" value="a" id="q2a">
+                    <label class="form-check-label" for="q2a">Контраст</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q2" value="b" id="q2b">
+                    <label class="form-check-label" for="q2b">Иерархия</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q2" value="c" id="q2c">
+                    <label class="form-check-label" for="q2c">Симметрия</label>
+                </div>
+            </div>
+
+            <div class="question-block">
+                <p><strong>3. Что такое адаптивный дизайн?</strong></p>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q3" value="a" id="q3a">
+                    <label class="form-check-label" for="q3a">Дизайн для печати</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q3" value="b" id="q3b">
+                    <label class="form-check-label" for="q3b">Дизайн, адаптирующийся к разным экранам</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q3" value="c" id="q3c">
+                    <label class="form-check-label" for="q3c">Дизайн с анимациями</label>
+                </div>
+            </div>
+
+            <div class="question-block">
+                <p><strong>4. Какой цветовой режим лучше для веб-дизайна?</strong></p>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q4" value="a" id="q4a">
+                    <label class="form-check-label" for="q4a">CMYK</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q4" value="b" id="q4b">
+                    <label class="form-check-label" for="q4b">RGB</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q4" value="c" id="q4c">
+                    <label class="form-check-label" for="q4c">Grayscale</label>
+                </div>
+            </div>
+
+            <div class="question-block">
+                <p><strong>5. Что такое Figma?</strong></p>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q5" value="a" id="q5a">
+                    <label class="form-check-label" for="q5a">Язык программирования</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q5" value="b" id="q5b">
+                    <label class="form-check-label" for="q5b">Инструмент для прототипирования</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q5" value="c" id="q5c">
+                    <label class="form-check-label" for="q5c">Система управления контентом</label>
+                </div>
+            </div>
+
+            <div class="question-block">
+                <p><strong>6. Какой шрифт лучше для основного текста?</strong></p>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q6" value="a" id="q6a">
+                    <label class="form-check-label" for="q6a">Comic Sans</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q6" value="b" id="q6b">
+                    <label class="form-check-label" for="q6b">Sans-serif (например, Inter)</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q6" value="c" id="q6c">
+                    <label class="form-check-label" for="q6c">Cursive</label>
+                </div>
+            </div>
+
+            <div class="question-block">
+                <p><strong>7. Что такое "белое пространство" в дизайне?</strong></p>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q7" value="a" id="q7a">
+                    <label class="form-check-label" for="q7a">Белый фон страницы</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q7" value="b" id="q7b">
+                    <label class="form-check-label" for="q7b">Пространство между элементами</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q7" value="c" id="q7c">
+                    <label class="form-check-label" for="q7c">Пустая страница</label>
+                </div>
+            </div>
+
+            <div class="question-block">
+                <p><strong>8. Что такое CTA в веб-дизайне?</strong></p>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q8" value="a" id="q8a">
+                    <label class="form-check-label" for="q8a">Шрифт для заголовков</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q8" value="b" id="q8b">
+                    <label class="form-check-label" for="q8b">Призыв к действию</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q8" value="c" id="q8c">
+                    <label class="form-check-label" for="q8c">Тип анимации</label>
+                </div>
+            </div>
+
+            <div class="question-block">
+                <p><strong>9. Какой инструмент помогает тестировать usability?</strong></p>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q9" value="a" id="q9a">
+                    <label class="form-check-label" for="q9a">Photoshop</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q9" value="b" id="q9b">
+                    <label class="form-check-label" for="q9b">Maze</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q9" value="c" id="q9c">
+                    <label class="form-check-label" for="q9c">WordPress</label>
+                </div>
+            </div>
+
+            <div class="question-block">
+                <p><strong>10. Что такое дизайн-система?</strong></p>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q10" value="a" id="q10a">
+                    <label class="form-check-label" for="q10a">Программа для создания сайтов</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q10" value="b" id="q10b">
+                    <label class="form-check-label" for="q10b">Набор компонентов и правил дизайна</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="q10" value="c" id="q10c">
+                    <label class="form-check-label" for="q10c">Система управления сайтом</label>
+                </div>
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="submitQuiz()">Подтвердить ответы</button>
+        </form>
+
+        <div id="result" class="result">
+            <h4>Результат:</h4>
+            <p id="score"></p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const answers = {
+            q1: 'b',
+            q2: 'b',
+            q3: 'b',
+            q4: 'b',
+            q5: 'b',
+            q6: 'b',
+            q7: 'b',
+            q8: 'b',
+            q9: 'b',
+            q10: 'b'
+        };
+
+        function updateProgress() {
+            const form = document.getElementById('quizForm');
+            let answered = 0;
+            for (let i = 1; i <= 10; i++) {
+                if (form.querySelector(`input[name="q${i}"]:checked`)) {
+                    answered++;
+                }
+            }
+            const progress = (answered / 10) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+            document.getElementById('progressBar').setAttribute('aria-valuenow', progress);
+        }
+
+        document.querySelectorAll('input[type="radio"]').forEach(input => {
+            input.addEventListener('change', updateProgress);
+        });
+
+        function submitQuiz() {
+            let score = 0;
+            const form = document.getElementById('quizForm');
+            const resultDiv = document.getElementById('result');
+            const scoreText = document.getElementById('score');
+
+            for (let i = 1; i <= 10; i++) {
+                const question = `q${i}`;
+                const selected = form.querySelector(`input[name="${question}"]:checked`);
+                const correctAnswer = answers[question];
+
+                form.querySelectorAll(`input[name="${question}"]`).forEach(input => {
+                    input.parentElement.classList.remove('correct', 'incorrect');
+                });
+
+                if (selected) {
+                    const selectedValue = selected.value;
+
+                    form.querySelector(`input[name="${question}"][value="${correctAnswer}"]`).parentElement.classList.add('correct');
+
+                    if (selectedValue === correctAnswer) {
+                        score++;
+                    } else {
+                        selected.parentElement.classList.add('incorrect');
+                    }
+                }
+            }
+
+            resultDiv.style.display = 'block';
+            scoreText.textContent = `Вы набрали ${score} из 10 баллов!`;
+
+            form.querySelectorAll('input').forEach(input => input.disabled = true);
+            form.querySelector('button').disabled = true;
+
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+
+</html>
